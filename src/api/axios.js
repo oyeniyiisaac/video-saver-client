@@ -2,7 +2,7 @@ import axios from 'axios';
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'https://video-saver-server.onrender.com/api',
-  timeout: 30000,
+  timeout: 90000,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -30,6 +30,8 @@ api.interceptors.response.use(
       } else {
         message = `Request failed with status ${status}.`;
       }
+    } else if (error.code === 'ECONNABORTED' || (error.message && error.message.toLowerCase().includes('timeout'))) {
+      message = 'Request timed out. If the cloud server was sleeping (Render cold start takes ~50s), it is waking up now. Please try fetching again.';
     } else if (error.request) {
       // The request was made but no response was received (server down, network error, CORS)
       message = 'Server is unreachable. Please verify that the server is online and reachable.';

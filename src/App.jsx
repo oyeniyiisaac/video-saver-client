@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import api from './api/axios.js';
 import { useDownloader } from './hooks/useDownloader.js';
 import { UrlInput } from './components/UrlInput.jsx';
 import { PlatformChips } from './components/PlatformChips.jsx';
@@ -11,6 +12,11 @@ import { DownloadCloud, ArrowLeft } from 'lucide-react';
 
 export default function App() {
   const [url, setUrl] = useState('');
+
+  // Ping backend on page load to warm up Render free tier container immediately
+  useEffect(() => {
+    api.get('/health').catch(() => {});
+  }, []);
   const {
     status,
     mediaInfo,
