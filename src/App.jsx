@@ -8,6 +8,7 @@ import { PreviewCard } from './components/PreviewCard.jsx';
 import { FormatPicker } from './components/FormatPicker.jsx';
 import { ProgressBar } from './components/ProgressBar.jsx';
 import { Footer } from './components/Footer.jsx';
+import { InstallPrompt } from './components/InstallPrompt.jsx';
 import { DownloadCloud, ArrowLeft } from 'lucide-react';
 
 export default function App() {
@@ -141,6 +142,9 @@ export default function App() {
 
       {/* Global Footer */}
       <Footer />
+
+      {/* PWA Install Banner */}
+      <InstallPrompt />
     </div>
   );
 }

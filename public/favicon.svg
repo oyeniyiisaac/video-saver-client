@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="128" fill="#0a0a0a"/>
+  <circle cx="256" cy="256" r="192" fill="#10b981"/>
+  <circle cx="256" cy="256" r="168" fill="#09090b"/>
+  <!-- Arrow stem -->
+  <rect x="236" y="148" width="40" height="130" rx="10" fill="#10b981"/>
+  <!-- Arrow head -->
+  <polygon points="256,330 186,250 326,250" fill="#10b981"/>
+  <!-- Bottom tray -->
+  <rect x="166" y="350" width="180" height="28" rx="14" fill="#f8fafc"/>
+</svg>
