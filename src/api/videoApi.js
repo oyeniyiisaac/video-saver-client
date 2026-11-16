@@ -1,10 +1,25 @@
 import api from './axios.js';
 
 /**
+ * Helper to build a proxy image URL for hotlink/CORS-protected thumbnails
+ */
+export function getProxyImageUrl(rawUrl) {
+  if (!rawUrl) return '';
+  const baseUrl = (api.defaults.baseURL || '/api').replace(/\/+$/, '');
+  return `${baseUrl}/proxy-image?url=${encodeURIComponent(rawUrl)}`;
+}
+
+/**
  * Helper to parse filename from Content-Disposition header
  */
-function extractFilename(contentDisposition, fallbackTitle, type) {
-  const defaultExt = type === 'audio' ? '.mp3' : '.mp4';
+function extractFilename(contentDisposition, fallbackTitle, type, imageFormat = 'jpg') {
+  let defaultExt = '.mp4';
+  if (type === 'audio') {
+    defaultExt = '.mp3';
+  } else if (type === 'image') {
+    const fmt = (imageFormat || 'jpg').toLowerCase();
+    defaultExt = fmt === 'png' ? '.png' : fmt === 'webp' ? '.webp' : '.jpg';
+  }
 
   if (contentDisposition) {
     // 1. Try RFC 5987 filename*
@@ -30,11 +45,11 @@ function extractFilename(contentDisposition, fallbackTitle, type) {
     .replace(/[\\/:*?"<>|]/g, '_')
     .replace(/\s+/g, ' ');
 
-  return safeTitle.endsWith(defaultExt) ? safeTitle : `${safeTitle}${defaultExt}`;
+  return safeTitle.toLowerCase().endsWith(defaultExt) ? safeTitle : `${safeTitle}${defaultExt}`;
 }
 
 /**
- * Fetch video/media info
+ * Fetch video/audio/picture media info
  * POST /api/info
  */
 export async function getInfo(url) {
@@ -43,14 +58,17 @@ export async function getInfo(url) {
 }
 
 /**
- * Download media file with progress tracking
+ * Download media file (video, audio, or picture) with progress tracking
  * POST /api/download
  */
-export async function downloadFile({ url, type, height, title }, onProgress) {
+export async function downloadFile(
+  { url, type, height, title, imageUrl, imageIndex = 0, imageFormat = 'jpg' },
+  onProgress
+) {
   try {
     const response = await api.post(
       '/download',
-      { url, type, height, title },
+      { url, type, height, title, imageUrl, imageIndex, imageFormat },
       {
         responseType: 'blob',
         timeout: 0, // No timeout for media downloads
@@ -63,7 +81,7 @@ export async function downloadFile({ url, type, height, title }, onProgress) {
     );
 
     const disposition = response.headers['content-disposition'];
-    const filename = extractFilename(disposition, title, type);
+    const filename = extractFilename(disposition, title, type, imageFormat);
 
     return {
       blob: response.data,

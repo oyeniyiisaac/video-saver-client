@@ -13,11 +13,13 @@ import { DownloadCloud, ArrowLeft } from 'lucide-react';
 
 export default function App() {
   const [url, setUrl] = useState('');
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
 
   // Ping backend on page load to warm up Render free tier container immediately
   useEffect(() => {
     api.get('/health').catch(() => {});
   }, []);
+
   const {
     status,
     mediaInfo,
@@ -30,19 +32,23 @@ export default function App() {
     setError,
   } = useDownloader();
 
-  const handleFetch = (submittedUrl) => {
+  // Reset selected image index whenever new mediaInfo is loaded
+  useEffect(() => {
+    setSelectedImageIndex(0);
+  }, [mediaInfo]);
+
+  const handleFetch = submittedUrl => {
     fetchMedia(submittedUrl);
   };
 
-  const handlePlatformSelect = (platformName) => {
-    // Helpful guide if user clicks a platform chip
+  const handlePlatformSelect = () => {
     if (!url) {
       setUrl('');
     }
   };
 
-  const handleStartDownload = ({ type, height }) => {
-    startDownload({ type, height });
+  const handleStartDownload = downloadOptions => {
+    startDownload(downloadOptions);
   };
 
   const isBusy = status === 'fetching' || status === 'preparing' || status === 'downloading';
@@ -66,10 +72,10 @@ export default function App() {
           </div>
 
           <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-neutral-100 font-sans">
-            Video <span className="text-emerald-400">Saver</span>
+            Video &amp; Picture <span className="text-emerald-400">Saver</span>
           </h1>
           <p className="mt-3 text-sm sm:text-base text-neutral-400 max-w-lg mx-auto leading-relaxed">
-            Download high quality videos or extract MP3 audio from any link in seconds.
+            Download HD videos, extract MP3 audio, or save high-resolution pictures from any platform in seconds.
           </p>
         </header>
 
@@ -123,14 +129,23 @@ export default function App() {
                   className="text-xs text-neutral-400 hover:text-neutral-200 flex items-center gap-1 transition-colors disabled:opacity-40"
                 >
                   <ArrowLeft className="w-3.5 h-3.5" />
-                  <span>Choose different video</span>
+                  <span>Choose different link</span>
                 </button>
               </div>
 
-              <PreviewCard info={mediaInfo} />
+              <PreviewCard
+                info={mediaInfo}
+                selectedImageIndex={selectedImageIndex}
+                onSelectImageIndex={setSelectedImageIndex}
+              />
 
               <FormatPicker
                 heights={mediaInfo.heights}
+                mediaType={mediaInfo.mediaType}
+                hasVideo={mediaInfo.hasVideo}
+                images={mediaInfo.images || []}
+                selectedImageIndex={selectedImageIndex}
+                onSelectImageIndex={setSelectedImageIndex}
                 onDownload={handleStartDownload}
                 isDownloading={status === 'preparing' || status === 'downloading'}
                 disabled={isBusy}

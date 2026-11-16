@@ -1,6 +1,17 @@
 import { useState, useCallback } from 'react';
 import { getInfo, downloadFile } from '../api/videoApi.js';
 
+function triggerBrowserSave(blob, filename) {
+  const blobUrl = window.URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = blobUrl;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  window.URL.revokeObjectURL(blobUrl);
+}
+
 export function useDownloader() {
   const [status, setStatus] = useState('idle'); // 'idle' | 'fetching' | 'ready' | 'preparing' | 'downloading' | 'done' | 'error'
   const [mediaInfo, setMediaInfo] = useState(null);
@@ -9,11 +20,11 @@ export function useDownloader() {
   const [downloadedFileName, setDownloadedFileName] = useState('');
 
   /**
-   * Fetch media info from link
+   * Fetch media info (video, audio, or picture/gallery) from link
    */
   const fetchMedia = useCallback(async rawUrl => {
     if (!rawUrl || !rawUrl.trim()) {
-      setError('Please enter or paste a valid video or music link.');
+      setError('Please enter or paste a valid video, music, or picture link.');
       setStatus('error');
       return;
     }
@@ -38,12 +49,19 @@ export function useDownloader() {
   }, []);
 
   /**
-   * Start preparing & downloading selected format
+   * Start preparing & downloading selected format (video, audio, single picture, or all gallery pictures)
    */
   const startDownload = useCallback(
-    async ({ type = 'video', height = null }) => {
+    async ({
+      type = 'video',
+      height = null,
+      imageUrl = null,
+      imageIndex = 0,
+      imageFormat = 'jpg',
+      downloadAll = false,
+    }) => {
       if (!mediaInfo || !mediaInfo.originalUrl) {
-        setError('No media link loaded. Please fetch a video first.');
+        setError('No media link loaded. Please fetch a link first.');
         setStatus('error');
         return;
       }
@@ -53,14 +71,56 @@ export function useDownloader() {
         setStatus('preparing');
         setProgress(0);
 
+        // Batch download all pictures in a multi-image gallery/carousel
+        if (type === 'image' && downloadAll && Array.isArray(mediaInfo.images) && mediaInfo.images.length > 1) {
+          const totalImages = mediaInfo.images.length;
+          setStatus('downloading');
+
+          for (let i = 0; i < totalImages; i++) {
+            const imgItem = mediaInfo.images[i];
+            const itemTitle = `${mediaInfo.title || 'picture'}_${i + 1}`;
+            const { blob, filename } = await downloadFile({
+              url: mediaInfo.originalUrl,
+              type: 'image',
+              title: itemTitle,
+              imageUrl: imgItem.url,
+              imageIndex: i,
+              imageFormat,
+            });
+            triggerBrowserSave(blob, filename);
+            setProgress(Math.round(((i + 1) * 100) / totalImages));
+          }
+
+          setDownloadedFileName(`${totalImages} pictures (${imageFormat.toUpperCase()})`);
+          setStatus('done');
+          return;
+        }
+
         let hasReceivedBytes = false;
+
+        // Resolve target image URL if downloading a picture
+        let resolvedImageUrl = imageUrl;
+        if (type === 'image' && !resolvedImageUrl) {
+          if (Array.isArray(mediaInfo.images) && mediaInfo.images.length > 0) {
+            const chosen = mediaInfo.images[imageIndex] || mediaInfo.images[0];
+            resolvedImageUrl = chosen.url;
+          } else if (mediaInfo.thumbnail) {
+            resolvedImageUrl = mediaInfo.thumbnail;
+          }
+        }
 
         const { blob, filename } = await downloadFile(
           {
             url: mediaInfo.originalUrl,
             type,
             height,
-            title: mediaInfo.title,
+            title:
+              type === 'image' && Array.isArray(mediaInfo.images) && mediaInfo.images.length > 1
+                ? `${mediaInfo.title || 'picture'}_${imageIndex + 1}`
+                : mediaInfo.title,
+            imageUrl: resolvedImageUrl,
+            imageIndex,
+            imageFormat,
           },
           progressEvent => {
             if (!hasReceivedBytes && progressEvent.loaded > 0) {
@@ -78,16 +138,7 @@ export function useDownloader() {
           }
         );
 
-        // Trigger browser save
-        const blobUrl = window.URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = blobUrl;
-        link.download = filename;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        window.URL.revokeObjectURL(blobUrl);
-
+        triggerBrowserSave(blob, filename);
         setDownloadedFileName(filename);
         setStatus('done');
       } catch (err) {

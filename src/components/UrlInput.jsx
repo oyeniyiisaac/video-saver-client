@@ -46,7 +46,7 @@ export function UrlInput({ url, setUrl, onSubmit, isLoading, disabled }) {
           type="url"
           value={url}
           onChange={e => setUrl(e.target.value)}
-          placeholder="Paste video or music link (YouTube, TikTok, Instagram, X...)"
+          placeholder="Paste video, audio, or picture link from any platform (YouTube, Instagram, Pinterest, X...)"
           disabled={disabled || isLoading}
           autoFocus
           className="w-full py-4 sm:py-5 px-3 sm:px-4 bg-transparent text-neutral-100 placeholder-neutral-500 text-sm sm:text-base font-normal focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
